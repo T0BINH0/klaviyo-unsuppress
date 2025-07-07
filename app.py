@@ -1,53 +1,58 @@
+from flask import Flask, request, jsonify
 import os
 import requests
-from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-@app.route("/", methods=["GET"])
-def home():
-    return "Webhook is running!"
-
-@app.route("/webhook", methods=["POST"])
+# Your webhook endpoint
+@app.route('/webhook', methods=['POST', 'PUT'])
 def webhook():
-    data = request.get_json()
+    if request.method == 'PUT':
+        # Accept and ignore PUT requests to avoid errors
+        return jsonify({'message': 'PUT method acknowledged'}), 200
 
     try:
-        answers = data.get("form_response", {}).get("answers", [])
-        email = None
+        data = request.get_json()
 
-        for answer in answers:
-            if answer.get("type") == "email":
-                email = answer.get("email")
-                break
+        # Optional: Print data for debugging
+        print("Received data:", data)
 
-        if not email:
-            return jsonify({"error": "No email found in the webhook payload"}), 400
+        # Extract email from Typeform response structure
+        email = data['form_response']['answers'][0]['email']  # Adjust index if needed
 
-        # Call Klaviyo API to unsuppress
+        # Klaviyo API call to unsuppress contact
         headers = {
-            "Authorization": f"Klaviyo-API-Key {os.environ.get('KLAVIYO_API_KEY')}",
-            "Content-Type": "application/json"
+            "Authorization": f"Klaviyo-API-Key {os.getenv('KLAVIYO_API_KEY')}",
+            "Content-Type": "application/json",
+            "revision": "2023-10-15"
         }
 
         payload = {
-            "profiles": [{"email": email}]
+            "data": {
+                "type": "profile",
+                "attributes": {
+                    "email": email
+                }
+            }
         }
 
         response = requests.put(
-            "https://a.klaviyo.com/api/profiles/unsuppress",
+            "https://a.klaviyo.com/api/profiles/",
             headers=headers,
             json=payload
         )
 
-        if response.status_code == 202:
-            return jsonify({"message": f"{email} was unsuppressed"}), 200
+        if response.status_code == 200:
+            return jsonify({'message': 'Successfully unsuppressed'}), 200
         else:
-            return jsonify({"error": "Failed to unsuppress", "details": response.text}), 500
+            return jsonify({
+                'error': 'Failed to unsuppress',
+                'details': response.text
+            }), response.status_code
 
     except Exception as e:
-        return jsonify({"error": "Unexpected error", "details": str(e)}), 500
+        return jsonify({'error': str(e)}), 500
 
-# 🔥 REQUIRED for Render to detect your service
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+# Start the Flask app (Render detects this automatically)
+if __name__ == '__main__':
+    app.run(debug=True)
