@@ -6,10 +6,10 @@ def webhook():
         answers = data.get("form_response", {}).get("answers", [])
         email = None
 
-        for answer in answers:
-            if answer.get("type") == "email":
-                email = answer.get("email")
-                break
+for answer in answers:
+    if answer.get("field", {}).get("ref") == "6ac982c1-c5bd-4dde-b512-baf618f0cb00":
+        email = answer.get("email")
+        break
 
         if not email:
             return jsonify({"error": "No email found in the webhook payload"}), 400
