@@ -11,7 +11,7 @@ def webhook():
     try:
         data = request.get_json()
 
-        # 🔍 Extract email from Typeform webhook
+        # Extract email from Typeform webhook
         email = None
         for answer in data.get("form_response", {}).get("answers", []):
             if answer.get("type") == "email":
@@ -21,17 +21,26 @@ def webhook():
         if not email:
             return jsonify({"error": "Email not found in webhook payload"}), 400
 
-        # ✅ Correct legacy endpoint
-        url = "https://a.klaviyo.com/api/v1/people/exclusions/email"
-        params = {
-            "api_key": KLAVIYO_API_KEY,
-            "email": email
+        # Call Klaviyo unsuppress API
+        url = "https://a.klaviyo.com/api/profile-suppression-bulk-deletion-jobs/"
+        headers = {
+            "Authorization": f"Klaviyo-API-Key {KLAVIYO_API_KEY}",
+            "revision": "2023-10-15",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "data": {
+                "type": "profile-suppression-bulk-deletion-job",
+                "attributes": {
+                    "emails": [email]
+                }
+            }
         }
 
-        response = requests.delete(url, params=params)
+        response = requests.post(url, headers=headers, json=payload)
 
-        if response.status_code == 200:
-            return jsonify({"message": "Successfully unsuppressed"}), 200
+        if response.status_code == 202:
+            return jsonify({"message": "Successfully unsuppressed"}), 202
         else:
             return jsonify({
                 "error": "Failed to unsuppress",
@@ -41,7 +50,7 @@ def webhook():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# Required for Render
+# For Render
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run(host="0.0.0.0", port=port, debug=True)
