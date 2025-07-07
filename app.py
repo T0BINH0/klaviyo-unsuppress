@@ -1,10 +1,14 @@
-from flask import Flask, request, jsonify
-import requests
 import os
+import requests
+from flask import Flask, request, jsonify
 
-app = Flask(__name__)  # ← This line creates the app
+app = Flask(__name__)
 
-@app.route('/webhook', methods=['POST'])
+@app.route("/", methods=["GET"])
+def home():
+    return "Webhook is running!"
+
+@app.route("/webhook", methods=["POST"])
 def webhook():
     data = request.get_json()
 
@@ -30,11 +34,11 @@ def webhook():
             "profiles": [{"email": email}]
         }
 
-response = requests.put(
-    "https://a.klaviyo.com/api/profiles/unsuppress",
-    headers=headers,
-    json=payload
-)
+        response = requests.put(
+            "https://a.klaviyo.com/api/profiles/unsuppress",
+            headers=headers,
+            json=payload
+        )
 
         if response.status_code == 202:
             return jsonify({"message": f"{email} was unsuppressed"}), 200
@@ -43,6 +47,3 @@ response = requests.put(
 
     except Exception as e:
         return jsonify({"error": "Unexpected error", "details": str(e)}), 500
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)  # Required by Render
