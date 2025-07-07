@@ -11,7 +11,7 @@ def webhook():
     try:
         data = request.get_json()
 
-        # 🔍 Search for the email in all answers
+        # 🔍 Extract email from Typeform webhook
         email = None
         for answer in data.get("form_response", {}).get("answers", []):
             if answer.get("type") == "email":
@@ -21,23 +21,14 @@ def webhook():
         if not email:
             return jsonify({"error": "Email not found in webhook payload"}), 400
 
-        # ✅ Correct Klaviyo endpoint to UNSUPPRESS
-        url = "https://a.klaviyo.com/api/profile-suppressions/deactivate"
-        headers = {
-            "Authorization": f"Klaviyo-API-Key {KLAVIYO_API_KEY}",
-            "Content-Type": "application/json",
-            "revision": "2023-02-22"
-        }
-        payload = {
-            "data": {
-                "type": "profile-suppression",
-                "attributes": {
-                    "email": email
-                }
-            }
+        # ✅ Correct legacy endpoint
+        url = "https://a.klaviyo.com/api/v1/people/exclusions/email"
+        params = {
+            "api_key": KLAVIYO_API_KEY,
+            "email": email
         }
 
-        response = requests.post(url, headers=headers, json=payload)
+        response = requests.delete(url, params=params)
 
         if response.status_code == 200:
             return jsonify({"message": "Successfully unsuppressed"}), 200
