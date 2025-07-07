@@ -21,8 +21,8 @@ def webhook():
         if not email:
             return jsonify({"error": "Email not found in webhook payload"}), 400
 
-        # 📤 Prepare request to Klaviyo
-        url = f"https://a.klaviyo.com/api/profiles/"
+        # ✅ Correct Klaviyo endpoint to UNSUPPRESS
+        url = "https://a.klaviyo.com/api/profile-suppressions/deactivate"
         headers = {
             "Authorization": f"Klaviyo-API-Key {KLAVIYO_API_KEY}",
             "Content-Type": "application/json",
@@ -30,10 +30,9 @@ def webhook():
         }
         payload = {
             "data": {
-                "type": "profile",
+                "type": "profile-suppression",
                 "attributes": {
-                    "email": email,
-                    "suppressed": False
+                    "email": email
                 }
             }
         }
@@ -43,12 +42,15 @@ def webhook():
         if response.status_code == 200:
             return jsonify({"message": "Successfully unsuppressed"}), 200
         else:
-            return jsonify({"error": "Failed to unsuppress", "details": response.text}), 500
+            return jsonify({
+                "error": "Failed to unsuppress",
+                "details": response.text
+            }), response.status_code
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# Required for Render.com to detect the open port
+# Required for Render
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
