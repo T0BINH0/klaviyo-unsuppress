@@ -1,8 +1,12 @@
+from flask import Flask, request, jsonify
+import requests
+import os
+
+app = Flask(__name__)  # ← This line creates the app
+
 @app.route('/webhook', methods=['POST'])
 def webhook():
     data = request.get_json()
-    print("DEBUG: Incoming webhook payload:")
-    print(data)  # <--- this will help us see the actual incoming data
 
     try:
         answers = data.get("form_response", {}).get("answers", [])
@@ -14,7 +18,7 @@ def webhook():
                 break
 
         if not email:
-            return jsonify({"error": "Missing email"}), 400
+            return jsonify({"error": "No email found in the webhook payload"}), 400
 
         # Call Klaviyo API to unsuppress
         headers = {
@@ -39,3 +43,6 @@ def webhook():
 
     except Exception as e:
         return jsonify({"error": "Unexpected error", "details": str(e)}), 500
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)  # Required by Render
