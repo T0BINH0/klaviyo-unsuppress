@@ -47,3 +47,7 @@ def webhook():
 
     except Exception as e:
         return jsonify({"error": "Unexpected error", "details": str(e)}), 500
+
+# 🔥 REQUIRED for Render to detect your service
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
