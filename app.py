@@ -30,11 +30,11 @@ def webhook():
             "profiles": [{"email": email}]
         }
 
-        response = requests.post(
-            "https://a.klaviyo.com/api/profiles/unsuppress",
-            headers=headers,
-            json=payload
-        )
+response = requests.put(
+    "https://a.klaviyo.com/api/profiles/unsuppress",
+    headers=headers,
+    json=payload
+)
 
         if response.status_code == 202:
             return jsonify({"message": f"{email} was unsuppressed"}), 200
