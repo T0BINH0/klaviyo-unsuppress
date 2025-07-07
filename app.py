@@ -11,14 +11,18 @@ def webhook():
     try:
         data = request.get_json()
 
-        # 🔍 Extract the email from Typeform payload
-        email = data.get("form_response", {}).get("answers", [])[0].get("email")
+        # 🔍 Search for the email in all answers
+        email = None
+        for answer in data.get("form_response", {}).get("answers", []):
+            if answer.get("type") == "email":
+                email = answer.get("email")
+                break
 
         if not email:
             return jsonify({"error": "Email not found in webhook payload"}), 400
 
-        # 🛠️ Prepare request to Klaviyo
-        url = "https://a.klaviyo.com/api/profiles/"
+        # 📤 Prepare request to Klaviyo
+        url = f"https://a.klaviyo.com/api/profiles/"
         headers = {
             "Authorization": f"Klaviyo-API-Key {KLAVIYO_API_KEY}",
             "Content-Type": "application/json",
@@ -29,28 +33,22 @@ def webhook():
                 "type": "profile",
                 "attributes": {
                     "email": email,
-                    "suppression": {
-                        "email": False
-                    }
+                    "suppressed": False
                 }
             }
         }
 
-        # ✅ Send PATCH request to unsuppress
-        response = requests.patch(url, json=payload, headers=headers)
+        response = requests.post(url, headers=headers, json=payload)
 
-        if response.status_code >= 200 and response.status_code < 300:
-            return jsonify({"status": "unsuppressed", "email": email}), 200
+        if response.status_code == 200:
+            return jsonify({"message": "Successfully unsuppressed"}), 200
         else:
-            return jsonify({
-                "error": "Failed to unsuppress",
-                "details": response.text
-            }), response.status_code
+            return jsonify({"error": "Failed to unsuppress", "details": response.text}), 500
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# 📢 Required by Render to expose the correct port
-if __name__ == '__main__':
+# Required for Render.com to detect the open port
+if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
