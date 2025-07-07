@@ -1,18 +1,20 @@
 @app.route('/webhook', methods=['POST'])
 def webhook():
     data = request.get_json()
+    print("DEBUG: Incoming webhook payload:")
+    print(data)  # <--- this will help us see the actual incoming data
 
     try:
         answers = data.get("form_response", {}).get("answers", [])
         email = None
 
-for answer in answers:
-    if answer.get("field", {}).get("ref") == "6ac982c1-c5bd-4dde-b512-baf618f0cb00":
-        email = answer.get("email")
-        break
+        for answer in answers:
+            if answer.get("type") == "email":
+                email = answer.get("email")
+                break
 
         if not email:
-            return jsonify({"error": "No email found in the webhook payload"}), 400
+            return jsonify({"error": "Missing email"}), 400
 
         # Call Klaviyo API to unsuppress
         headers = {
