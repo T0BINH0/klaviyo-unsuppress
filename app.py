@@ -10,6 +10,7 @@ KLAVIYO_API_KEY = os.environ.get("KLAVIYO_API_KEY")
 def webhook():
     try:
         data = request.get_json()
+        print("Incoming Typeform payload:", data)
 
         # Extract email from Typeform webhook
         email = None
